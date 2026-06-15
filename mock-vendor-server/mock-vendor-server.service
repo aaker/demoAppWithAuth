@@ -1,0 +1,44 @@
+[Unit]
+Description=Mock Vendor PKCE Server (NetSapiens remote-auth testing)
+Documentation=https://github.com/netsapiens
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# Run as a dedicated, unprivileged user (created by install.sh)
+User=mockvendor
+Group=mockvendor
+
+# Application location (install.sh syncs the app here)
+WorkingDirectory=/opt/mock-vendor-server
+ExecStart=/usr/bin/node /opt/mock-vendor-server/index.js
+
+# Configuration — see /etc/mock-vendor-server.env
+EnvironmentFile=/etc/mock-vendor-server.env
+
+# Restart policy
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Logging goes to the journal:  journalctl -u mock-vendor-server -f
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mock-vendor-server
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/mock-vendor-server
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

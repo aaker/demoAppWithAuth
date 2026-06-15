@@ -1,0 +1,32 @@
+{
+  "name": "mock-vendor-pkce-server",
+  "version": "1.0.0",
+  "description": "Mock vendor server for testing PKCE remote authentication flow with JWT verification",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [
+    "pkce",
+    "oauth",
+    "mock",
+    "testing",
+    "netsapiens",
+    "jwt"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "jsonwebtoken": "^9.0.2",
+    "jwks-rsa": "^3.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

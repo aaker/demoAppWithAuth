@@ -1,0 +1,9 @@
+{
+  "id": "demoAppWithAuth",
+  "name": "Horizon Demo App with Auth",
+  "description": "Inspector for the horizonContext exposed to remote apps",
+  "version": "0.1.0",
+  "permissions": [
+    "remote-auth:request"
+  ]
+}
