@@ -86,7 +86,7 @@ export default function FunctionsPage(horizonContext: HorizonContext) {
       title="Functions"
       breadcrumbs={[
         { label: 'Apps', url: '/apps' },
-        { label: 'Demo App', url: '/apps/demo-app-with-auth' },
+        { label: 'Demo App with Auth', url: '/apps/demo-app-with-auth' },
         { label: 'Functions' },
       ]}
     >

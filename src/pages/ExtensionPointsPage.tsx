@@ -101,7 +101,7 @@ export default function ExtensionPointsPage(horizonContext: HorizonContext) {
           title="Injected Page"
           breadcrumbs={[
             { label: 'Apps', url: '/apps' },
-            { label: 'Demo App', url: '/apps/demo-app-with-auth' },
+            { label: 'Demo App with Auth', url: '/apps/demo-app-with-auth' },
             { label: 'Injected Page' },
           ]}
         >
@@ -349,7 +349,7 @@ export default function ExtensionPointsPage(horizonContext: HorizonContext) {
         subtitle="Inject real UI into the host on demand"
         breadcrumbs={[
           { label: 'Apps', url: '/apps' },
-          { label: 'Demo App', url: '/apps/demo-app-with-auth' },
+          { label: 'Demo App with Auth', url: '/apps/demo-app-with-auth' },
           { label: 'Extension Points' },
         ]}
       >
@@ -363,7 +363,7 @@ export default function ExtensionPointsPage(horizonContext: HorizonContext) {
       title="Extension Points"
       breadcrumbs={[
         { label: 'Apps', url: '/apps' },
-        { label: 'Demo App', url: '/apps/demo-app-with-auth' },
+        { label: 'Demo App with Auth', url: '/apps/demo-app-with-auth' },
         { label: 'Extension Points' },
       ]}
     >

@@ -108,7 +108,7 @@
       <div class="actor" data-key="api"><div class="nm">ns-api v2</div><div class="sub">Oauth2Controller</div></div>
       <div class="actor" data-key="db"><div class="nm">oauth_codes</div><div class="sub">DB</div></div>
       <div class="actor" data-key="insight"><div class="nm">NS Insight</div><div class="sub">attestation</div></div>
-      <div class="actor" data-key="vendor"><div class="nm">Vendor Server</div><div class="sub">mock-vendor-server</div></div>
+      <div class="actor" data-key="vendor"><div class="nm">Partner / 3rd Party</div><div class="sub">mock-vendor-server</div></div>
     </div>
     <div class="track" id="track">
       <svg id="arrowSvg" height="76">
@@ -141,17 +141,17 @@ const STEPS = [
     kind:'intro', zone:'', title:'Horizon Remote Authentication — Step by Step',
     what:`<div class="intro-card">
       <p>This walkthrough follows a <strong>remote-auth</strong> request end to end: a third-party SDK app asks the
-      Horizon host to obtain an access token from an external vendor. Four actors are involved, across three trust zones.</p>
+      Horizon host to obtain an access token from an external 3rd party. Four actors are involved, across three trust zones.</p>
       <ul>
         <li><strong>SDK App</strong> — untrusted third-party code running inside the host (browser).</li>
         <li><strong>Horizon Host</strong> — the trusted shell that loads apps and brokers their requests (browser).</li>
         <li><strong>ns-api v2</strong> — the NetSapiens backend that owns identity, codes, and signing keys.</li>
-        <li><strong>Vendor Server</strong> — the external third party, reachable only at an allow-listed callback URL.</li>
+        <li><strong>Partner / 3rd Party</strong> — the external 3rd party, reachable only at an allow-listed callback URL.</li>
       </ul>
       <div class="legend">
         <span><i class="sw b"></i> Browser — untrusted app code</span>
         <span><i class="sw n"></i> NetSapiens — trusted backend</span>
-        <span><i class="sw v"></i> Vendor — external third party</span>
+        <span><i class="sw v"></i> Partner / 3rd Party</span>
       </div>
       <p style="margin-top:12px;color:var(--muted);font-size:13px;">Press <strong>Next ›</strong> to begin. 19 pages.</p>
     </div>`,
@@ -194,7 +194,7 @@ const STEPS = [
   {
     kind:'msg', from:'host', to:'api', zone:'ns', title:'Host calls ns-api: initiate',
     what:`<p>The host makes an authenticated server call to <code>POST /v2/oauth2/remote-auth/initiate</code>,
-      carrying the signed-in user's <strong>session bearer token</strong>. The body identifies the app, the vendor,
+      carrying the signed-in user's <strong>session bearer token</strong>. The body identifies the app, the 3rd party,
       the callback, and the user.</p>`,
     sec:`<h3>Security · session JWT</h3>
       <p>The bearer token is a NetSapiens JWT, signed <strong>RS256</strong> (verified via JWKS) or
@@ -231,7 +231,7 @@ Authorization: Bearer <session JWT>
           TTL <strong>600s</strong>, single-use, storing only the <em>challenge</em> + method <code>S256</code>.</li>
       </ul>`,
     sec:`<h3>Security · server-side PKCE + code binding</h3>
-      <p>This is a server-side PKCE variant: ns-api mints the verifier and will hand it to the vendor over the signed
+      <p>This is a server-side PKCE variant: ns-api mints the verifier and will hand it to the 3rd party over the signed
       webhook. Only the challenge is stored. The code is pinned to the authenticated user and is single-use.</p>`,
     data:`// oauth_codes row
 {
@@ -281,8 +281,8 @@ Authorization: Bearer <on-disk Insight service token>
 }`
   },
   {
-    kind:'msg', from:'api', to:'vendor', zone:'vendor', title:'Signed webhook to the vendor',
-    what:`<p>ns-api makes a <strong>blocking</strong> POST to the vendor's <code>callbackUrl</code>
+    kind:'msg', from:'api', to:'vendor', zone:'vendor', title:'Signed webhook to the 3rd party',
+    what:`<p>ns-api makes a <strong>blocking</strong> POST to the 3rd party's <code>callbackUrl</code>
       (timeout = <code>remote_timeout_seconds</code>, default 30s, TLS verified). The body carries the
       <code>code</code>, the <code>code_verifier</code>, the user, the <code>validation_endpoint</code>, and
       <code>pkce_enabled</code>.</p>`,
@@ -305,8 +305,8 @@ X-NS-Cluster-Verification: <RS256 JWT>   (optional)
 }`
   },
   {
-    kind:'proc', at:'vendor', zone:'vendor', title:'Vendor verifies the webhook',
-    what:`<p>The vendor authenticates the incoming webhook before acting on it:</p>
+    kind:'proc', at:'vendor', zone:'vendor', title:'Partner / 3rd Party verifies the webhook',
+    what:`<p>The 3rd party authenticates the incoming webhook before acting on it:</p>
       <ul>
         <li>recompute <code>HMAC-SHA256(request_id + code + timestamp, secret)</code> and constant-time compare
           (401 on mismatch);</li>
@@ -319,12 +319,12 @@ X-NS-Cluster-Verification: <RS256 JWT>   (optional)
     sec:`<h3>Security · webhook authenticity</h3>
       <p>The HMAC proves the webhook came from a holder of the shared secret. The cluster JWT independently proves it
       came from a genuine NetSapiens cluster (verified with Insight's public keys, no shared secret) and tells the
-      vendor <em>which client and cluster</em>. Only then does the vendor redeem the code.</p>`,
+      3rd party <em>which client and cluster</em>. Only then does the 3rd party redeem the code.</p>`,
     data:''
   },
   {
-    kind:'msg', from:'vendor', to:'api', zone:'ns', title:'Vendor redeems the code',
-    what:`<p>The vendor calls <code>POST /v2/oauth2/token</code> (form-encoded) to exchange the code. It echoes back
+    kind:'msg', from:'vendor', to:'api', zone:'ns', title:'Partner / 3rd Party redeems the code',
+    what:`<p>The 3rd party calls <code>POST /v2/oauth2/token</code> (form-encoded) to exchange the code. It echoes back
       the <code>code_verifier</code> it received and includes <strong>no client secret</strong>.</p>`,
     sec:`<h3>Security · PKCE replaces the secret</h3>
       <p>Possession of the exact <code>code_verifier</code> from the webhook is the proof of legitimacy — there is no
@@ -350,22 +350,22 @@ redirect_uri=<callbackUrl>`
   },
   {
     kind:'msg', from:'api', to:'vendor', dashed:true, zone:'vendor', title:'ns-api returns the NS token',
-    what:`<p>The backend returns its own access token (an NS JWT) to the vendor as the response to the
+    what:`<p>The backend returns its own access token (an NS JWT) to the 3rd party as the response to the
       token-exchange call.</p>`,
     sec:`<h3>Security · scoped NS token</h3>
-      <p>This NS JWT represents the user context the vendor is now authorized to act with, should it call back into
+      <p>This NS JWT represents the user context the 3rd party is now authorized to act with, should it call back into
       NetSapiens APIs.</p>`,
     data:''
   },
   {
-    kind:'proc', at:'vendor', zone:'vendor', title:'Vendor issues its own token',
-    what:`<p>Having validated everything, the vendor mints <strong>its own</strong> access token
+    kind:'proc', at:'vendor', zone:'vendor', title:'Partner / 3rd Party issues its own token',
+    what:`<p>Having validated everything, the 3rd party mints <strong>its own</strong> access token
       (<code>mock_vendor_token_…</code>) and returns it as the HTTP response to the original webhook (step 7),
       which ns-api is still blocking on.</p>`,
-    sec:`<h3>Security · vendor owns its tokens</h3>
-      <p>The token the app ultimately receives is the vendor's, not NetSapiens'. Its format and lifetime are the
-      vendor's choice (<code>expires_in</code>, optional <code>refresh_token</code>).</p>`,
-    data:`// vendor → ns-api (webhook response)
+    sec:`<h3>Security · 3rd party owns its tokens</h3>
+      <p>The token the app ultimately receives is the 3rd party's, not NetSapiens'. Its format and lifetime are the
+      3rd party's choice (<code>expires_in</code>, optional <code>refresh_token</code>).</p>`,
+    data:`// 3rd party → ns-api (webhook response)
 {
   "access_token":"mock_vendor_token_ab12…",
   "token_type":"Bearer", "expires_in":7200,
@@ -375,20 +375,20 @@ redirect_uri=<callbackUrl>`
 }`
   },
   {
-    kind:'msg', from:'vendor', to:'api', dashed:true, zone:'ns', title:'Vendor returns token to ns-api',
-    what:`<p>The vendor's response completes the blocking webhook call from step 7. ns-api now holds the vendor's
+    kind:'msg', from:'vendor', to:'api', dashed:true, zone:'ns', title:'Partner / 3rd Party returns token to ns-api',
+    what:`<p>The 3rd party's response completes the blocking webhook call from step 7. ns-api now holds the 3rd party's
       access token.</p>`,
     sec:`<h3>Security · synchronous relay</h3>
-      <p>Because the whole exchange happens inside one blocking webhook, no token is ever persisted on the vendor's
+      <p>Because the whole exchange happens inside one blocking webhook, no token is ever persisted on the 3rd party's
       side mid-flight or exposed to the browser prematurely.</p>`,
     data:''
   },
   {
     kind:'msg', from:'api', to:'host', dashed:true, zone:'browser', title:'ns-api relays the token to the host',
-    what:`<p>ns-api transforms the vendor response and returns it as the <code>initiate</code> response. A vendor
+    what:`<p>ns-api transforms the 3rd party response and returns it as the <code>initiate</code> response. A 3rd-party
       failure instead yields <code>502 RA009</code>.</p>`,
     sec:`<h3>Security · single authenticated channel</h3>
-      <p>The browser only ever talks to ns-api over the authenticated session; it never speaks to the vendor's token
+      <p>The browser only ever talks to ns-api over the authenticated session; it never speaks to the 3rd party's token
       endpoint directly.</p>`,
     data:`// initiate response (200)
 {
@@ -414,12 +414,12 @@ redirect_uri=<callbackUrl>`
   },
   {
     kind:'msg', from:'app', to:'vendor', zone:'vendor', title:'App uses the token',
-    what:`<p>The app now calls the vendor's API with the bearer token, e.g.
+    what:`<p>The app now calls the 3rd party's API with the bearer token, e.g.
       <code>GET /api/user-data</code> with <code>Authorization: Bearer &lt;accessToken&gt;</code>. Later it can call
       <code>getRemoteAuthToken(vendorId)</code> or <code>clearRemoteAuthToken(vendorId)</code>.</p>`,
-    sec:`<h3>Security · vendor bearer token</h3>
-      <p>The vendor validates its own token (prefix/shape/expiry) and returns 401 otherwise. The credential never
-      passed through the vendor's browser-facing surface unsigned.</p>`,
+    sec:`<h3>Security · 3rd party bearer token</h3>
+      <p>The 3rd party validates its own token (prefix/shape/expiry) and returns 401 otherwise. The credential never
+      passed through the 3rd party's browser-facing surface unsigned.</p>`,
     data:`GET /api/user-data
 Authorization: Bearer mock_vendor_token_ab12…
 
@@ -499,7 +499,7 @@ function render(){
   const z=s.zone;
   $('phaseBadge').className='badge '+zoneClass(z).replace('z','');
   $('phaseBadge').textContent = s.kind==='intro'?'Intro': s.kind==='recap'?'Recap'
-      : z==='browser'?'Browser': z==='ns'?'NetSapiens': z==='vendor'?'Vendor':'Step';
+      : z==='browser'?'Browser': z==='ns'?'NetSapiens': z==='vendor'?'3rd Party':'Step';
   $('counter').textContent = cur===0?'':'Step '+cur+' of '+(STEPS.length-2);
   $('title').textContent=s.title;
   // actors

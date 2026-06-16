@@ -135,5 +135,4 @@ webhook (HMAC + optional RS256 cluster JWT), redeems the code, and returns its o
 | [`AUTH_FLOW.md`](./AUTH_FLOW.md) | Authoritative remote-auth flow + security reference. |
 | [`auth-flow.html`](./auth-flow.html) | Single-page, print-to-PDF version of the flow. |
 | [`auth-flow-walkthrough.html`](./auth-flow-walkthrough.html) | Interactive, paged step-by-step walkthrough. |
-| [`PKCE_TESTING.md`](./PKCE_TESTING.md) | PKCE test setup and walkthrough. |
 | [`mock-vendor-server/README.md`](./mock-vendor-server/README.md) | The mock vendor server — endpoints, config, troubleshooting. |

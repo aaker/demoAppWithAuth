@@ -65,21 +65,21 @@
 
   <div class="titlecard">
     <h1>Horizon Remote Authentication</h1>
-    <div class="lede">End-to-end flow across the SDK app, the Horizon host, ns-api&nbsp;v2, and the remote vendor server.</div>
+    <div class="lede">End-to-end flow across the SDK app, the Horizon host, ns-api&nbsp;v2, and the remote 3rd-party server.</div>
     <p class="meta">Descriptive reference of the system as implemented. Companion to <code>AUTH_FLOW.md</code>.</p>
     <div class="legend">
       <span><i class="swatch sw-browser"></i> Browser — untrusted app code</span>
       <span><i class="swatch sw-ns"></i> NetSapiens — trusted backend</span>
-      <span><i class="swatch sw-vendor"></i> Vendor — external third party</span>
+      <span><i class="swatch sw-vendor"></i> Partner / 3rd Party</span>
     </div>
     <p class="print-tip">To export a PDF: open this file in a browser, then <strong>Print → Save as PDF</strong>. (Diagrams render via Mermaid from a CDN — first open needs network access.)</p>
   </div>
 
   <h2>1. Overview</h2>
   <p>The flow chains four actors. A remote SDK app (running inside the Horizon host in the browser)
-  asks the host to authenticate it with a vendor. The host calls the NetSapiens API
+  asks the host to authenticate it with a 3rd party. The host calls the NetSapiens API
   (<strong>ns-api&nbsp;v2</strong>), which mints a short-lived authorization code (with server-side
-  PKCE), then signs and POSTs a webhook to the vendor's callback URL. The vendor validates the
+  PKCE), then signs and POSTs a webhook to the 3rd party's callback URL. The 3rd party validates the
   webhook, redeems the code back against ns-api, issues its own access token, and returns it. ns-api
   relays that token to the host, which stores it and resolves the app's promise.</p>
 
@@ -93,8 +93,8 @@ flowchart LR
     API["ns-api v2<br/>Oauth2Controller"]
     DB[("oauth_codes /<br/>horizon_extensions")]
   end
-  subgraph Vendor["Vendor (remote 3rd party)"]
-    VEND["Remote Server<br/>mock-vendor-server"]
+  subgraph Vendor["Partner / 3rd Party"]
+    VEND["3rd-Party Server<br/>mock-vendor-server"]
   end
   APP -- "①&nbsp; requestRemoteAuth()<br/>(EventBus, signed msgs)" --> HOST
   HOST -- "②&nbsp; POST /oauth2/remote-auth/initiate<br/>(session JWT)" --> API
@@ -102,7 +102,7 @@ flowchart LR
   API -- "④&nbsp; signed webhook<br/>(HMAC + cluster JWT)" --> VEND
   VEND -- "⑤&nbsp; POST /oauth2/token<br/>(code + PKCE verifier)" --> API
   API -- "⑥&nbsp; NS access token" --> VEND
-  VEND -- "⑦&nbsp; vendor access token" --> API
+  VEND -- "⑦&nbsp; 3rd-party access token" --> API
   API -- "⑧&nbsp; token relayed" --> HOST
   HOST -- "⑨&nbsp; store token + resolve" --> APP
   APP -- "⑩&nbsp; Bearer token →<br/>GET /api/user-data" --> VEND
@@ -117,16 +117,16 @@ flowchart LR
   <p><strong>Trust boundaries.</strong> Everything in the blue zone is untrusted browser code — the
   SDK app is third-party and the host treats it accordingly (signed messages, permission gates, rate
   limits). The green zone is the trusted NetSapiens backend that owns identity, codes, and signing
-  keys. The yellow zone is an external vendor reachable only at an allow-listed callback URL.</p>
+  keys. The yellow zone is an external 3rd party reachable only at an allow-listed callback URL.</p>
 
   <h2>2. Actors &amp; artifacts</h2>
   <table>
     <thead><tr><th>Actor</th><th>Repo / key files</th><th>Holds</th></tr></thead>
     <tbody>
-      <tr><td><strong>SDK App</strong></td><td><code>app-horizon-debug</code> — <code>src/pages/RemoteAuthDemo.tsx</code>, <code>horizon-app.json</code></td><td>The app manifest (<code>permissions: ["remote-auth:request"]</code>); the vendor access token after success (via the host store)</td></tr>
+      <tr><td><strong>SDK App</strong></td><td><code>app-horizon-debug</code> — <code>src/pages/RemoteAuthDemo.tsx</code>, <code>horizon-app.json</code></td><td>The app manifest (<code>permissions: ["remote-auth:request"]</code>); the 3rd-party access token after success (via the host store)</td></tr>
       <tr><td><strong>Horizon Host + SDK</strong></td><td><code>netsapiens-horizon</code> — <code>HorizonAppsLoader.tsx</code>, <code>lib/sdk/remoteAuth.ts</code>, <code>store/useRemoteAuthStore.ts</code>, <code>sdk/security/*</code>, <code>sdk/loader/ModuleLoader.ts</code></td><td>The user's session JWT; the per-app HMAC signing key; the <code>localStorage</code> token store</td></tr>
       <tr><td><strong>ns-api v2</strong></td><td><code>netsapiens-api-v2</code> — <code>Oauth2Controller.php</code>, <code>Model/Table/{Oauthcodes,OauthJwts,HorizonExtensions}Table.php</code>, <code>db/api_db_v46.sql</code></td><td>Authorization codes + PKCE challenges (<code>oauth_codes</code>); the extension registry incl. <code>remote_callback_secret</code> (<code>horizon_extensions</code>); JWT signing keys (RS256/HS256)</td></tr>
-      <tr><td><strong>Vendor server</strong></td><td><code>app-horizon-debug/mock-vendor-server/index.js</code></td><td>The <code>remote_callback_secret</code> (shared with ns-api for HMAC); its own access tokens; JWKS trust for the Insight cluster JWT</td></tr>
+      <tr><td><strong>Partner / 3rd Party server</strong></td><td><code>app-horizon-debug/mock-vendor-server/index.js</code></td><td>The <code>remote_callback_secret</code> (shared with ns-api for HMAC); its own access tokens; JWKS trust for the Insight cluster JWT</td></tr>
     </tbody>
   </table>
 
@@ -139,7 +139,7 @@ sequenceDiagram
     participant API as ns-api v2
     participant DB as oauth_codes
     participant Insight as NS Insight
-    participant Vendor as Vendor Server
+    participant Vendor as Partner / 3rd Party
     rect rgb(232, 240, 254)
     Note over App,Host: PHASE 1 · App asks the host to authenticate
     App->>Host: requestRemoteAuth({vendorId, callbackUrl, scopes?, metadata?}, {timeout})
@@ -162,16 +162,16 @@ sequenceDiagram
     Vendor->>Vendor: Verify X-NS-Signature = HMAC-SHA256(request_id+code+timestamp, secret)<br/>Optionally verify cluster JWT via Insight JWKS (RS256, scope=verification, appId)<br/>confirms a trusted NS server, learns client + cluster name<br/>Require pkce_enabled and code_verifier
     end
     rect rgb(230, 244, 234)
-    Note over Vendor,DB: PHASE 4 · Vendor redeems the code (PKCE proof)
+    Note over Vendor,DB: PHASE 4 · Partner / 3rd Party redeems the code (PKCE proof)
     Vendor->>API: POST /v2/oauth2/token (x-www-form-urlencoded, NO client secret)<br/>{grant_type=authorization_code, code, code_verifier, username, redirect_uri}
     API->>DB: Load code, require code_verifier, validate S256:<br/>hash_equals(challenge, base64url(SHA256(verifier)))<br/>Validate username, DELETE code (single-use)
     API-->>Vendor: NS access token (JWT)
     end
     rect rgb(254, 247, 224)
-    Note over API,Vendor: PHASE 5 · Vendor issues its token, ns-api relays it
-    Vendor->>Vendor: Mint vendor token (mock_vendor_token_...)
+    Note over API,Vendor: PHASE 5 · Partner / 3rd Party issues its token, ns-api relays it
+    Vendor->>Vendor: Mint 3rd-party token (mock_vendor_token_...)
     Vendor-->>API: 200 {access_token, token_type, expires_in, refresh_token?, scope, cluster_verification?}
-    API-->>Host: 200 {vendorId, accessToken, tokenType, expiresAt, refreshToken?, user, clusterVerification?}<br/>(or 502 RA009 on vendor failure)
+    API-->>Host: 200 {vendorId, accessToken, tokenType, expiresAt, refreshToken?, user, clusterVerification?}<br/>(or 502 RA009 on 3rd-party failure)
     end
     rect rgb(232, 240, 254)
     Note over App,Vendor: PHASE 6 · Host stores the token, app uses it
@@ -182,7 +182,7 @@ sequenceDiagram
     end
   </pre>
   <p>The key subtlety: <code>/oauth2/remote-auth/initiate</code> is <strong>synchronous</strong>.
-  ns-api blocks while it POSTs the webhook to the vendor; the vendor, <em>within that webhook
+  ns-api blocks while it POSTs the webhook to the 3rd party; the 3rd party, <em>within that webhook
   request</em>, redeems the code at <code>/oauth2/token</code> and returns its own token; ns-api then
   relays that token in the <code>initiate</code> HTTP response.</p>
 
@@ -227,12 +227,12 @@ sequenceDiagram
   <code>_validatePKCE</code>. <strong>How:</strong> ns-api generates <strong>both</strong> halves —
   <code>code_verifier</code> = base64url(<code>random_bytes(32)</code>), <code>code_challenge</code> =
   base64url(SHA256(verifier)). Only the <strong>challenge</strong> is stored; the
-  <strong>verifier</strong> is shipped to the vendor in the webhook. At token exchange the vendor
+  <strong>verifier</strong> is shipped to the 3rd party in the webhook. At token exchange the 3rd party
   returns the verifier and ns-api validates
   <code>hash_equals(challenge, base64url(SHA256(verifier)))</code>.</p>
   <div class="note"><strong>Placement note:</strong> this is a server-side variant of PKCE. Rather than
-  the public client generating the verifier, ns-api mints it and hands it to the vendor over the signed
-  webhook; the vendor proves it received that exact webhook by echoing the verifier back.</div>
+  the public client generating the verifier, ns-api mints it and hands it to the 3rd party over the signed
+  webhook; the 3rd party proves it received that exact webhook by echoing the verifier back.</div>
   <p><strong>Protects:</strong> ties code redemption to the party that received the webhook; a stolen
   code alone (without the verifier) cannot be redeemed.</p>
 
@@ -241,14 +241,14 @@ sequenceDiagram
   verify — <code>mock-vendor-server/index.js</code>. <strong>How:</strong> when the extension has a
   <code>remote_callback_secret</code>, ns-api sends
   <code>signature = HMAC-SHA256(request_id + code + timestamp, secret)</code> in the body and as
-  <code>X-NS-Signature: sha256=&lt;hex&gt;</code>; the vendor recomputes and compares (constant-time);
+  <code>X-NS-Signature: sha256=&lt;hex&gt;</code>; the 3rd party recomputes and compares (constant-time);
   mismatch → 401. <strong>Protects:</strong> authenticates the webhook as genuinely from NetSapiens and
   detects tampering.</p>
 
   <h3>4.7 RS256 cluster-verification JWT — proves the caller is a genuine NetSapiens server</h3>
   <p>An optional <em>second</em> proof on the webhook, complementary to the HMAC. Where the HMAC proves
   "whoever holds the shared secret sent this", this JWT proves "this is a real NetSapiens cluster" and
-  tells the vendor <strong>which client and cluster</strong> it is talking to — with no pre-shared
+  tells the 3rd party <strong>which client and cluster</strong> it is talking to — with no pre-shared
   secret.</p>
   <p><strong>How ns-api obtains it (the Insight sub-flow):</strong></p>
   <ul>
@@ -269,20 +269,20 @@ sequenceDiagram
   <p><strong>What the JWT carries:</strong> signed by Insight (RS256) with <code>cluster_id</code>,
   <code>cluster_name</code>, <code>client</code>, <code>client_id</code>, <code>scope='verification'</code>,
   <code>iss</code>, <code>iat</code>, <code>exp</code>.</p>
-  <p><strong>What the vendor does (optional):</strong> verifies it with <code>jwks-rsa</code> against the
+  <p><strong>What the 3rd party does (optional):</strong> verifies it with <code>jwks-rsa</code> against the
   Insight JWKS endpoint (<code>/.well-known/jwks.json</code>, <code>algorithms: ['RS256']</code>),
   checking <code>scope === 'verification'</code> and a matching <code>appId</code>. The verified claims
   confirm the request came from a <strong>trusted NetSapiens server</strong> and reveal the
   <strong>client name and cluster name</strong>. Failure is non-fatal in the mock (HMAC stays primary).</p>
   <p><strong>Why two layers:</strong> the HMAC secret is shared per-extension and could leak; the cluster
-  JWT is asymmetric (the vendor needs only Insight's public keys) and centrally attestable, so a vendor
+  JWT is asymmetric (the 3rd party needs only Insight's public keys) and centrally attestable, so a 3rd party
   can trust "this is NetSapiens, cluster X, client Y" with no prior key exchange.</p>
 
-  <h3>4.8 Vendor bearer token</h3>
+  <h3>4.8 Partner / 3rd Party bearer token</h3>
   <p><strong>Where:</strong> <code>mock-vendor-server/index.js</code> <code>/api/user-data</code>.
-  <strong>How:</strong> the vendor issues <code>mock_vendor_token_&lt;random&gt;</code>; protected
+  <strong>How:</strong> the 3rd party issues <code>mock_vendor_token_&lt;random&gt;</code>; protected
   endpoints require <code>Authorization: Bearer &lt;token&gt;</code> and the server checks prefix +
-  shape (401 otherwise). <strong>Protects:</strong> gates the vendor's own resources behind its issued
+  shape (401 otherwise). <strong>Protects:</strong> gates the 3rd party's own resources behind its issued
   token.</p>
 
   <h3>4.9 Host ↔ app message signing</h3>
@@ -326,7 +326,7 @@ sequenceDiagram
   "clusterVerification": { "verified": true, "cluster_id": 23573, "app_id": "demo-app-with-auth" }
 }</code></pre>
 
-  <h4>Webhook to vendor — headers + body</h4>
+  <h4>Webhook to partner / 3rd party — headers + body</h4>
 <pre><code>POST &lt;callbackUrl&gt;
 Content-Type: application/json
 X-NS-Request-ID: remauth_xxx
@@ -345,14 +345,14 @@ X-NS-Cluster-Verification: &lt;RS256 JWT&gt;        (optional)
   "signature": "&lt;hex hmac&gt;"
 }</code></pre>
 
-  <h4><code>POST /v2/oauth2/token</code> — vendor → ns-api (<code>x-www-form-urlencoded</code>, no client secret)</h4>
+  <h4><code>POST /v2/oauth2/token</code> — partner / 3rd party → ns-api (<code>x-www-form-urlencoded</code>, no client secret)</h4>
 <pre><code>grant_type=authorization_code
 code=&lt;authorization code&gt;
 code_verifier=&lt;same verifier from webhook&gt;
 username=1000@example.com
 redirect_uri=https://sdk.nseng.dev/mock-server/oauth/callback</code></pre>
 
-  <h4>Vendor webhook response — vendor → ns-api (200)</h4>
+  <h4>Partner / 3rd Party webhook response — 3rd party → ns-api (200)</h4>
 <pre><code>{
   "access_token": "mock_vendor_token_ab12…",
   "token_type": "Bearer",
@@ -400,13 +400,13 @@ redirect_uri=https://sdk.nseng.dev/mock-server/oauth/callback</code></pre>
       <tr><td><code>RA006B</code></td><td>500</td><td>Invalid <code>allowed_hostnames</code> configuration</td></tr>
       <tr><td><code>RA007</code></td><td>400</td><td>Invalid callback URL format</td></tr>
       <tr><td><code>RA007B</code></td><td>403</td><td>Callback URL not in <code>allowed_hostnames</code></td></tr>
-      <tr><td><code>RA009</code></td><td>502</td><td>Vendor webhook failed</td></tr>
+      <tr><td><code>RA009</code></td><td>502</td><td>Partner / 3rd Party webhook failed</td></tr>
     </tbody>
   </table>
 
   <h2>7. Try it</h2>
   <p>The hands-on setup (registering the extension, the SQL to enable remote auth + set
-  <code>allowed_hostnames</code> / <code>remote_callback_secret</code>, running the mock vendor server,
+  <code>allowed_hostnames</code> / <code>remote_callback_secret</code>, running the mock 3rd-party server,
   and the click-through) is documented in <code>PKCE_TESTING.md</code> and
   <code>mock-vendor-server/README.md</code>.</p>
 

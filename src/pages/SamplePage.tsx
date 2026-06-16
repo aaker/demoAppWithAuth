@@ -402,7 +402,7 @@ export default function SamplePage(horizonContext: HorizonContext) {
       title="Sample Page"
       breadcrumbs={[
         { label: 'Apps', url: '/apps' },
-        { label: 'Demo App', url: '/apps/demo-app-with-auth' },
+        { label: 'Demo App with Auth', url: '/apps/demo-app-with-auth' },
         { label: 'Sample Page' },
       ]}
     >

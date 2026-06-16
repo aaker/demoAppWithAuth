@@ -98,7 +98,7 @@ export default function RemoteAuthDemo({ horizonContext }: RemoteAuthDemoProps) 
     setTestLoading(true);
     setTestResult(null);
 
-    const testEndpoint = 'http://localhost:3001/api/user-data';
+    const testEndpoint = 'https://sdk.nseng.dev/mock-server/api/user-data';
 
     try {
       addDebugLog('🧪 Testing authenticated API request...');
@@ -196,7 +196,7 @@ export default function RemoteAuthDemo({ horizonContext }: RemoteAuthDemoProps) 
             type="text"
             value={callbackUrl}
             onChange={(e) => setCallbackUrl(e.target.value)}
-            placeholder="http://localhost:3001/oauth/callback"
+            placeholder="https://sdk.nseng.dev/mock-server/oauth/callback"
             style={{
               width: '100%',
               padding: '8px 12px',
@@ -449,7 +449,7 @@ export default function RemoteAuthDemo({ horizonContext }: RemoteAuthDemoProps) 
             </div>
             <div style={{ marginBottom: '8px' }}>
               <strong>Endpoint:</strong>{' '}
-              <code style={{ fontSize: '12px' }}>GET http://localhost:3001/api/user-data</code>
+              <code style={{ fontSize: '12px' }}>GET https://sdk.nseng.dev/mock-server/api/user-data</code>
             </div>
             <div>
               <strong>Authorization:</strong>{' '}

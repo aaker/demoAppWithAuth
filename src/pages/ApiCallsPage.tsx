@@ -76,9 +76,9 @@ export default function ApiCallsPage(horizonContext: HorizonContext) {
       requirement: string;
     }> = [
       {
-        run: () => horizonContext.api?.post?.('/oauth/me', {}),
+        run: () => horizonContext.api?.get?.('/oauth/me', {}),
         setState: setMe,
-        requirement: 'horizonContext.api.post is not available',
+        requirement: 'horizonContext.api.get is not available',
       },
       {
         run: () => horizonContext.api?.get?.('/domains/~/users/~'),
@@ -196,7 +196,7 @@ export default function ApiCallsPage(horizonContext: HorizonContext) {
       title="API Calls"
       breadcrumbs={[
         { label: 'Apps', url: '/apps' },
-        { label: 'Demo App', url: '/apps/demo-app-with-auth' },
+        { label: 'Demo App with Auth', url: '/apps/demo-app-with-auth' },
         { label: 'API Calls' },
       ]}
     >
@@ -207,10 +207,10 @@ export default function ApiCallsPage(horizonContext: HorizonContext) {
         </Typography>
 
         <CallSection
-          title="api.post('/oauth/me')"
+          title="api.get('/oauth/me')"
           state={me}
           idPrefix="me"
-          code={`const res = await horizonContext.api.post('/oauth/me', {});`}
+          code={`const res = await horizonContext.api.get('/oauth/me', {});`}
         />
         <CallSection
           title="api.get('/domains/~/users/~')"

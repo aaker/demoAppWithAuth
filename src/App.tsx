@@ -60,7 +60,7 @@ export default function App(horizonContext: HorizonContext) {
       id: 'demo-app-with-auth.main',
       parentPath: '/apps',
       path: 'demo-app-with-auth',
-      label: 'Demo App',
+      label: 'Demo App with Auth',
       icon: 'mdi:bug-outline',
       order: 200,
       component: VariablesWithContext,
